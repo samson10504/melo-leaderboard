@@ -33,7 +33,7 @@ def upload_file():
             <!doctype html>
             <title>Results</title>
             <h2>Processed Data:</h2>
-            <p>{{data}}</p>
+            <p>{{data|safe }}</p>
             <a href="/">Upload another file</a>
             """, data=processed_data)
     return '''
@@ -48,8 +48,7 @@ def upload_file():
     </form>
     '''
 
-def load_and_prepare_data(filepath, year, month):
-    df = pd.read_csv(filepath)
+def load_and_prepare_data(df, year, month):
     df['MemberEvent.Date'] = pd.to_datetime(df['MemberEvent.Date'])
     
     # Calculate cutoff date for filtering
@@ -81,21 +80,23 @@ def calculate_total_tokens(df, year, month):
 
 # Main processing function
 def process_data(df, year, month):
-    # Directly prepare the data without reading from CSV again
-    df['MemberEvent.Date'] = pd.to_datetime(df['MemberEvent.Date'])
-    cutoff_date = pd.Timestamp(year=year, month=month, day=1, tz='UTC') + pd.DateOffset(months=1)
-    filtered_df = df[df['MemberEvent.Date'] < cutoff_date]
+    df = load_and_prepare_data(df, year, month)
+    results_html = "<h3>First 5 Token Holders (Latest Entry Per Member):</h3>"
+    results_html += get_first_5_token_holders(df).to_html(index=False)
+    
+    results_html += "<h3>Top 5 Total Positive Token Earners of the Specified Month:</h3>"
+    results_html += calculate_positive_earnings(df, year, month).to_html(index=False)
+    
+    tokens_issued, tokens_spent, net_tokens = calculate_total_tokens(df, year, month)
+    summary_df = pd.DataFrame({
+        "Category": ["Tokens Issued", "Tokens Spent", "Net Tokens"],
+        "Amount": [tokens_issued, tokens_spent, net_tokens]
+    })
+    results_html += "<h3>Total Tokens Issued, Spent, and Net of the Specified Month:</h3>"
+    results_html += summary_df.to_html(index=False)
+    
+    return results_html
 
-    results = "First 5 Token Holders (Latest Entry Per Member):\n"
-    results += str(get_first_5_token_holders(filtered_df))
-    results += "\n\nTop 5 Total Positive Token Earners of the Specified Month:\n"
-    results += str(calculate_positive_earnings(filtered_df, year, month))
-    tokens_issued, tokens_spent, net_tokens = calculate_total_tokens(filtered_df, year, month)
-    results += "\n\nTotal Tokens Issued, Spent, and Net of the Specified Month:\n"
-    results += f"Tokens Issued: {tokens_issued}\n"
-    results += f"Tokens Spent: {tokens_spent}\n"
-    results += f"Net Tokens: {net_tokens}\n"
-    return results
 
 
 if __name__ == '__main__':
