@@ -39,7 +39,7 @@ def upload_file():
     return '''
     <!doctype html>
     <title>Upload CSV File</title>
-    <h2>Upload new CSV</h2>
+    <h2>Upload the Member Events CSV</h2>
     <form method=post enctype=multipart/form-data>
       <input type=file name=file>
       <input type="number" name="year" placeholder="Year" required>
